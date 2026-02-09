@@ -242,6 +242,53 @@ void TheaterChaseRainbow_Run() {
 	chase_rainbow_pos++;
 	if (chase_rainbow_pos >= 3) chase_rainbow_pos = 0;
 }
+
+// Hiệu ứng Cylon Eye (Knight Rider scan) - ĐỊNH NGHĨA TRƯỚC KHI DÙNG
+static int cylon_pos = 0;
+static int cylon_dir = 1;
+
+void CylonEye_Run(void) {
+	// Kiểm tra pixel_count hợp lệ
+	if (pixel_count <= 0) {
+		return;
+	}
+
+	// Fade toàn bộ để tạo đuôi (tail fade)
+	fadeToBlackBy(40);  // Giá trị 30-60 tùy độ dài đuôi mong muốn
+
+	// Đặt điểm sáng chính (đầu quét)
+	Strip_setPixelWithBrig(cylon_pos, 255, 0, 0, 0, 0);  // đỏ max
+
+	// Đuôi fade hai bên (mờ dần) - KIỂM TRA BIÊN
+	if (cylon_pos > 0) {
+		Strip_setPixelWithBrig(cylon_pos - 1, 120, 0, 0, 0, 0);
+	}
+	if (cylon_pos > 1) {
+		Strip_setPixelWithBrig(cylon_pos - 2, 60, 0, 0, 0, 0);
+	}
+	if (cylon_pos < pixel_count - 1) {
+		Strip_setPixelWithBrig(cylon_pos + 1, 120, 0, 0, 0, 0);
+	}
+	if (cylon_pos < pixel_count - 2) {
+		Strip_setPixelWithBrig(cylon_pos + 2, 60, 0, 0, 0, 0);
+	}
+
+	// Di chuyển vị trí
+	cylon_pos += cylon_dir;
+
+	// Đổi hướng khi chạm biên - SỬA LẠI LOGIC
+	if (cylon_pos >= pixel_count - 1) {
+		cylon_pos = pixel_count - 1;  // Đảm bảo không vượt quá
+		cylon_dir = -1;
+	} else if (cylon_pos <= 0) {
+		cylon_pos = 0;  // Đảm bảo không âm
+		cylon_dir = 1;
+	}
+
+	// Áp dụng frame
+	Strip_Apply();
+}
+
 // startDriver PixelAnim
 
 int activeAnim = -1;
@@ -252,13 +299,19 @@ ledAnim_t g_anims[] = {
 	{ "Comet", Comet_Run },
 	{ "Theater Chase", TheaterChase_Run },
 	{ "Theater Chase Rainbow", TheaterChaseRainbow_Run },
-  { "Cylon Eye",  CylonEye_Run }
+	{ "Cylon Eye",  CylonEye_Run }
 };
 int g_numAnims = sizeof(g_anims) / sizeof(g_anims[0]);
 int g_speed = 0;
 
 void PixelAnim_SetAnim(int j)
 {
+	// Reset các biến static khi chuyển animation
+	if (j == 6) {  // Cylon Eye
+		cylon_pos = 0;
+		cylon_dir = 1;
+	}
+	
 	activeAnim = j;
 	if(j >= 0)
 	{
@@ -283,7 +336,14 @@ commandResult_t PA_Cmd_Anim(const void *context, const char *cmd, const char *ar
 		return CMD_RES_NOT_ENOUGH_ARGUMENTS;
 	}
 
-	PixelAnim_SetAnim(Tokenizer_GetArgInteger(0));
+	int animIndex = Tokenizer_GetArgInteger(0);
+	
+	// Kiểm tra index hợp lệ
+	if (animIndex < 0 || animIndex >= g_numAnims) {
+		return CMD_RES_ERROR;
+	}
+
+	PixelAnim_SetAnim(animIndex);
 
 	return CMD_RES_OK;
 }
@@ -376,49 +436,6 @@ void PixelAnim_SetAnimQuickTick() {
 			g_ticks = 0;
 		}
 	}
-}
-// Hiệu ứng mới: Cylon Eye (Knight Rider scan) - quét sáng đỏ hai đầu
-static void CylonEye_Run(void) {
-    static int pos = 0;
-    static int dir = 1;           // 1: phải, -1: trái
-    static uint16_t frame = 0;    // Để điều khiển tốc độ nếu cần
-
-    // Fade toàn bộ để tạo đuôi (tail fade)
-    fadeToBlackBy(40);  // Giá trị 30-60 tùy độ dài đuôi mong muốn, nhỏ = đuôi dài hơn
-
-    // Đặt điểm sáng chính (đầu quét)
-    Strip_setPixelWithBrig(pos, 255, 0, 0, led_baseColors[4], 0);  // đỏ max + brig từ led_baseColors[4]
-
-    // Đuôi fade hai bên (mờ dần)
-    if (pos > 0) {
-        Strip_setPixelWithBrig(pos - 1, 120, 0, 0, led_baseColors[4], 0);
-    }
-    if (pos > 1) {
-        Strip_setPixelWithBrig(pos - 2, 60, 0, 0, led_baseColors[4], 0);
-    }
-    if (pos < pixel_count - 1) {
-        Strip_setPixelWithBrig(pos + 1, 120, 0, 0, led_baseColors[4], 0);
-    }
-    if (pos < pixel_count - 2) {
-        Strip_setPixelWithBrig(pos + 2, 60, 0, 0, led_baseColors[4], 0);
-    }
-
-    // Di chuyển vị trí
-    pos += dir;
-
-    // Đổi hướng khi chạm biên
-    if (pos >= pixel_count - 1) {
-        dir = -1;
-    } else if (pos <= 0) {
-        dir = 1;
-    }
-
-    // Áp dụng frame
-    Strip_Apply();
-
-    // (Tùy chọn) Thêm delay nhỏ nếu animation quá nhanh
-    // frame++;
-    // if (frame % 2 == 0) return; // chạy mỗi 2 tick để chậm lại
 }
 
 //ENABLE_DRIVER_PIXELANIM
