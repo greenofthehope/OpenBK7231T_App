@@ -247,7 +247,6 @@ void TheaterChaseRainbow_Run() {
 // Tạo sóng màu di chuyển qua strip với gradient mượt mà
 static uint16_t wave_offset = 0;
 
-// triangle wave 0–255
 static inline byte triwave8(uint16_t x) {
 	x &= 0xFF;
 	if (x & 0x80)
@@ -260,21 +259,15 @@ void ColorWaves_Run(void) {
 
 	for (int i = 0; i < pixel_count; i++) {
 
-		byte w1 = triwave8(i * 4 + wave_offset);
-		byte w2 = triwave8(i * 4 + wave_offset + 85);
-		byte w3 = triwave8(i * 4 + wave_offset + 170);
-
-		byte r = (w1 * led_baseColors[0]) >> 8;
-		byte g = (w2 * led_baseColors[1]) >> 8;
-		byte b = (w3 * led_baseColors[2]) >> 8;
+		byte r = (triwave8(i * 4 + wave_offset) * led_baseColors[0]) >> 8;
+		byte g = (triwave8(i * 4 + wave_offset + 85) * led_baseColors[1]) >> 8;
+		byte b = (triwave8(i * 4 + wave_offset + 170) * led_baseColors[2]) >> 8;
 
 		Strip_setPixelWithBrig(i, r, g, b, 0, 0);
 	}
 
 	Strip_Apply();
-
-	// tốc độ wave phụ thuộc AnimSpeed
-	wave_offset += (g_speed > 0) ? g_speed : 1;
+	wave_offset++;
 }
 
 
@@ -335,9 +328,9 @@ commandResult_t PA_Cmd_AnimSpeed(const void *context, const char *cmd, const cha
 	if (Tokenizer_GetArgsCount() == 0) {
 		return CMD_RES_NOT_ENOUGH_ARGUMENTS;
 	}
-
 	g_speed = Tokenizer_GetArgInteger(0);
-
+		if (g_speed < 1)
+			g_speed = 1;
 	return CMD_RES_OK;
 }
 void PixelAnim_Init() {
@@ -401,23 +394,31 @@ void PixelAnim_CreatePanel(http_request_t *request) {
 }
 int g_ticks = 0;
 void PixelAnim_SetAnimQuickTick() {
-	if (g_lightEnableAll == 0) {
-		// disabled
+
+	if (g_lightEnableAll == 0)
 		return;
-	}
+
 	if (g_lightMode != Light_Anim) {
-		if(activeAnim != -1) PixelAnim_SetAnim(-1);
-		// disabled
+		if (activeAnim != -1)
+			PixelAnim_SetAnim(-1);
 		return;
 	}
+
 	if (activeAnim != -1) {
+
+		// ===== FIX TREO WATCHDOG =====
+		int spd = g_speed;
+		if (spd <= 0)
+			spd = 1;
+
 		g_ticks++;
-		if (g_ticks >= g_speed) {
+		if (g_ticks >= spd) {
 			g_anims[activeAnim].runFunc();
 			g_ticks = 0;
 		}
 	}
 }
+
 
 //ENABLE_DRIVER_PIXELANIM
 #endif
