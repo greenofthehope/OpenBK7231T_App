@@ -243,50 +243,31 @@ void TheaterChaseRainbow_Run() {
 	if (chase_rainbow_pos >= 3) chase_rainbow_pos = 0;
 }
 
-// Hiệu ứng Cylon Eye (Knight Rider scan) - ĐỊNH NGHĨA TRƯỚC KHI DÙNG
-static int cylon_pos = 0;
-static int cylon_dir = 1;
+// ===== ANIMATION MỚI: COLOR WAVES =====
+// Tạo sóng màu di chuyển qua strip với gradient mượt mà
+static int wave_offset = 0;
 
-void CylonEye_Run(void) {
-	// Kiểm tra pixel_count hợp lệ
-	if (pixel_count <= 0) {
-		return;
+void ColorWaves_Run(void) {
+	byte *c;
+	
+	for (int i = 0; i < pixel_count; i++) {
+		// Tạo 3 sóng sin với tần số khác nhau
+		int wave1 = (int)(127 + 127 * sin((i + wave_offset) * 0.1));
+		int wave2 = (int)(127 + 127 * sin((i + wave_offset) * 0.15 + 2.0));
+		int wave3 = (int)(127 + 127 * sin((i + wave_offset) * 0.08 + 4.0));
+		
+		// Kết hợp 3 sóng thành màu RGB
+		byte r = (byte)((wave1 * led_baseColors[0]) / 255);
+		byte g = (byte)((wave2 * led_baseColors[1]) / 255);
+		byte b = (byte)((wave3 * led_baseColors[2]) / 255);
+		
+		Strip_setPixelWithBrig(i, r, g, b, 0, 0);
 	}
-
-	// Fade toàn bộ để tạo đuôi (tail fade)
-	fadeToBlackBy(40);  // Giá trị 30-60 tùy độ dài đuôi mong muốn
-
-	// Đặt điểm sáng chính (đầu quét)
-	Strip_setPixelWithBrig(cylon_pos, 255, 0, 0, 0, 0);  // đỏ max
-
-	// Đuôi fade hai bên (mờ dần) - KIỂM TRA BIÊN
-	if (cylon_pos > 0) {
-		Strip_setPixelWithBrig(cylon_pos - 1, 120, 0, 0, 0, 0);
-	}
-	if (cylon_pos > 1) {
-		Strip_setPixelWithBrig(cylon_pos - 2, 60, 0, 0, 0, 0);
-	}
-	if (cylon_pos < pixel_count - 1) {
-		Strip_setPixelWithBrig(cylon_pos + 1, 120, 0, 0, 0, 0);
-	}
-	if (cylon_pos < pixel_count - 2) {
-		Strip_setPixelWithBrig(cylon_pos + 2, 60, 0, 0, 0, 0);
-	}
-
-	// Di chuyển vị trí
-	cylon_pos += cylon_dir;
-
-	// Đổi hướng khi chạm biên - SỬA LẠI LOGIC
-	if (cylon_pos >= pixel_count - 1) {
-		cylon_pos = pixel_count - 1;  // Đảm bảo không vượt quá
-		cylon_dir = -1;
-	} else if (cylon_pos <= 0) {
-		cylon_pos = 0;  // Đảm bảo không âm
-		cylon_dir = 1;
-	}
-
-	// Áp dụng frame
+	
 	Strip_Apply();
+	
+	wave_offset += 2;  // Tốc độ di chuyển của sóng
+	if (wave_offset > 1000) wave_offset = 0;  // Reset để tránh overflow
 }
 
 // startDriver PixelAnim
@@ -299,17 +280,16 @@ ledAnim_t g_anims[] = {
 	{ "Comet", Comet_Run },
 	{ "Theater Chase", TheaterChase_Run },
 	{ "Theater Chase Rainbow", TheaterChaseRainbow_Run },
-	{ "Cylon Eye",  CylonEye_Run }
+	{ "Color Waves",  ColorWaves_Run }
 };
 int g_numAnims = sizeof(g_anims) / sizeof(g_anims[0]);
 int g_speed = 0;
 
 void PixelAnim_SetAnim(int j)
 {
-	// Reset các biến static khi chuyển animation
-	if (j == 6) {  // Cylon Eye
-		cylon_pos = 0;
-		cylon_dir = 1;
+	// Reset animation variables khi chuyển
+	if (j == 6) {  // Color Waves
+		wave_offset = 0;
 	}
 	
 	activeAnim = j;
@@ -336,14 +316,7 @@ commandResult_t PA_Cmd_Anim(const void *context, const char *cmd, const char *ar
 		return CMD_RES_NOT_ENOUGH_ARGUMENTS;
 	}
 
-	int animIndex = Tokenizer_GetArgInteger(0);
-	
-	// Kiểm tra index hợp lệ
-	if (animIndex < 0 || animIndex >= g_numAnims) {
-		return CMD_RES_ERROR;
-	}
-
-	PixelAnim_SetAnim(animIndex);
+	PixelAnim_SetAnim(Tokenizer_GetArgInteger(0));
 
 	return CMD_RES_OK;
 }
