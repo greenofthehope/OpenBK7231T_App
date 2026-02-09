@@ -245,30 +245,38 @@ void TheaterChaseRainbow_Run() {
 
 // ===== ANIMATION MỚI: COLOR WAVES =====
 // Tạo sóng màu di chuyển qua strip với gradient mượt mà
-static int wave_offset = 0;
+static uint16_t wave_offset = 0;
+
+// triangle wave 0–255
+static inline byte triwave8(uint16_t x) {
+	x &= 0xFF;
+	if (x & 0x80)
+		return 255 - ((x & 0x7F) << 1);
+	else
+		return (x << 1);
+}
 
 void ColorWaves_Run(void) {
-	byte *c;
-	
+
 	for (int i = 0; i < pixel_count; i++) {
-		// Tạo 3 sóng sin với tần số khác nhau
-		int wave1 = (int)(127 + 127 * sin((i + wave_offset) * 0.1));
-		int wave2 = (int)(127 + 127 * sin((i + wave_offset) * 0.15 + 2.0));
-		int wave3 = (int)(127 + 127 * sin((i + wave_offset) * 0.08 + 4.0));
-		
-		// Kết hợp 3 sóng thành màu RGB
-		byte r = (byte)((wave1 * led_baseColors[0]) / 255);
-		byte g = (byte)((wave2 * led_baseColors[1]) / 255);
-		byte b = (byte)((wave3 * led_baseColors[2]) / 255);
-		
+
+		byte w1 = triwave8(i * 4 + wave_offset);
+		byte w2 = triwave8(i * 4 + wave_offset + 85);
+		byte w3 = triwave8(i * 4 + wave_offset + 170);
+
+		byte r = (w1 * led_baseColors[0]) >> 8;
+		byte g = (w2 * led_baseColors[1]) >> 8;
+		byte b = (w3 * led_baseColors[2]) >> 8;
+
 		Strip_setPixelWithBrig(i, r, g, b, 0, 0);
 	}
-	
+
 	Strip_Apply();
-	
-	wave_offset += 2;  // Tốc độ di chuyển của sóng
-	if (wave_offset > 1000) wave_offset = 0;  // Reset để tránh overflow
+
+	// tốc độ wave phụ thuộc AnimSpeed
+	wave_offset += (g_speed > 0) ? g_speed : 1;
 }
+
 
 // startDriver PixelAnim
 
