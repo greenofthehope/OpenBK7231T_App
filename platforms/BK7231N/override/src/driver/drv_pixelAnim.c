@@ -380,26 +380,46 @@ void PixelAnim_SetAnimQuickTick() {
 // Hiệu ứng mới: Cylon Eye (Knight Rider scan) - quét sáng đỏ hai đầu
 static void CylonEye_Run(void) {
     static int pos = 0;
-    static int dir = 1;  // 1: phải, -1: trái
+    static int dir = 1;           // 1: phải, -1: trái
+    static uint16_t frame = 0;    // Để điều khiển tốc độ nếu cần
 
-    int numPixels = PixelAnim_GetNumPixels();
-    if (numPixels <= 0) return;
+    // Fade toàn bộ để tạo đuôi (tail fade)
+    fadeToBlackBy(40);  // Giá trị 30-60 tùy độ dài đuôi mong muốn, nhỏ = đuôi dài hơn
 
-    PixelAnim_Clear();
+    // Đặt điểm sáng chính (đầu quét)
+    Strip_setPixelWithBrig(pos, 255, 0, 0, led_baseColors[4], 0);  // đỏ max + brig từ led_baseColors[4]
 
-    PixelAnim_SetPixel(pos, 255, 0, 0);  // Đỏ max
+    // Đuôi fade hai bên (mờ dần)
+    if (pos > 0) {
+        Strip_setPixelWithBrig(pos - 1, 120, 0, 0, led_baseColors[4], 0);
+    }
+    if (pos > 1) {
+        Strip_setPixelWithBrig(pos - 2, 60, 0, 0, led_baseColors[4], 0);
+    }
+    if (pos < pixel_count - 1) {
+        Strip_setPixelWithBrig(pos + 1, 120, 0, 0, led_baseColors[4], 0);
+    }
+    if (pos < pixel_count - 2) {
+        Strip_setPixelWithBrig(pos + 2, 60, 0, 0, led_baseColors[4], 0);
+    }
 
-    if (pos > 0) PixelAnim_SetPixel(pos - 1, 100, 0, 0);
-    if (pos < numPixels - 1) PixelAnim_SetPixel(pos + 1, 100, 0, 0);
-
+    // Di chuyển vị trí
     pos += dir;
 
-    if (pos >= numPixels - 1) dir = -1;
-    else if (pos <= 0) dir = 1;
+    // Đổi hướng khi chạm biên
+    if (pos >= pixel_count - 1) {
+        dir = -1;
+    } else if (pos <= 0) {
+        dir = 1;
+    }
 
-    PixelAnim_Update();
+    // Áp dụng frame
+    Strip_Apply();
+
+    // (Tùy chọn) Thêm delay nhỏ nếu animation quá nhanh
+    // frame++;
+    // if (frame % 2 == 0) return; // chạy mỗi 2 tick để chậm lại
 }
-
 
 //ENABLE_DRIVER_PIXELANIM
 #endif
