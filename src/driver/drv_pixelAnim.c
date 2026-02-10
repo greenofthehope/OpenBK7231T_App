@@ -224,7 +224,35 @@ void TheaterChase_Run() {
 	chase_pos++;
 	if (chase_pos >= 3) chase_pos = 0;
 }
+// Animation 6: Rainbow 7 colors per pixel, repeating across the strip
+void Rainbow7_Run() {
+    static uint16_t offset = 0;  // Để dịch chuyển pattern nếu muốn (tăng dần)
 
+    const byte rainbow7[7][3] = {
+        {255, 0,   0},   // 0: Đỏ
+        {255, 127, 0},   // 1: Cam
+        {255, 255, 0},   // 2: Vàng
+        {0,   255, 0},   // 3: Xanh lá
+        {0,   0,   255}, // 4: Xanh dương
+        {75,  0,   130}, // 5: Chàm (Indigo)
+        {148, 0,   211}  // 6: Tím (Violet)
+    };
+
+    for (int i = 0; i < pixel_count; i++) {
+        // Mỗi pixel lấy màu theo vị trí + offset (mod 7)
+        int colorIndex = (i + offset) % 7;
+        byte r = rainbow7[colorIndex][0];
+        byte g = rainbow7[colorIndex][1];
+        byte b = rainbow7[colorIndex][2];
+
+        Strip_setPixelWithBrig(i, r, g, b, 0, 0);
+    }
+
+    Strip_Apply();
+
+    // Nếu muốn pattern dịch chuyển chậm (như rainbow cycle nhẹ), uncomment dòng dưới
+    // offset = (offset + 1) % 7;  // Tăng 1 mỗi frame → pattern chạy chậm
+}
 static int chase_rainbow_pos = 0;
 
 void TheaterChaseRainbow_Run() {
@@ -251,7 +279,8 @@ ledAnim_t g_anims[] = {
 	{ "Shooting Star", ShootingStar_Run },
 	{ "Comet", Comet_Run },
 	{ "Theater Chase", TheaterChase_Run },
-	{ "Theater Chase Rainbow", TheaterChaseRainbow_Run }
+	{ "Theater Chase Rainbow", TheaterChaseRainbow_Run },
+	{ "Rainbow 7 Colors", Rainbow7_Run }
 };
 int g_numAnims = sizeof(g_anims) / sizeof(g_anims[0]);
 int g_speed = 0;
@@ -381,4 +410,3 @@ void PixelAnim_SetAnimQuickTick() {
 
 //ENABLE_DRIVER_PIXELANIM
 #endif
-
