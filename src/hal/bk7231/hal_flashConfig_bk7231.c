@@ -8,6 +8,8 @@
 #include "BkDriverUart.h"
 
 #include "../../logging/logging.h"
+-DENABLE_MQTT_TLS=1
+-DUSE_MBEDTLS=1   # hoặc tương tự, tùy commit mới nhất
 
 static SemaphoreHandle_t config_mutex = 0;
 
