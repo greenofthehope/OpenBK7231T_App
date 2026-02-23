@@ -43,17 +43,7 @@
 #if MQTT_USE_TLS
 
 #include "mbedtls/config.h"
-// huydq test TLS enable
-#define MBEDTLS_SSL_TLS_C
-#define MBEDTLS_SSL_CLI_C
-#define MBEDTLS_NET_C
-#define MBEDTLS_ENTROPY_C
-#define MBEDTLS_CTR_DRBG_C
-#define MBEDTLS_X509_CRT_PARSE_C
-#define MBEDTLS_PEM_PARSE_C
-#define MBEDTLS_RSA_C
-#define MBEDTLS_AES_C
-#define MBEDTLS_SHA256_C
+
 
 // Plataform specific
 #undef  MBEDTLS_FS_IO
